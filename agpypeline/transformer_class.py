@@ -4,13 +4,13 @@
 import argparse
 import datetime
 import logging
+from typing import Optional
 
 import piexif
 
 from numpy import nan
 from osgeo import gdal, osr
 
-import configuration
 
 # EXIF tags to look for
 EXIF_ORIGIN_TIMESTAMP = 36867  # Capture timestamp
@@ -119,7 +119,7 @@ class Transformer():
     """Generic class for supporting transformers
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, configuration, **kwargs):
         """Performs initialization of class instance
         Arguments:
             kwargs: additional parameters passed in to Transformer
@@ -127,6 +127,7 @@ class Transformer():
         # pylint: disable=unused-argument
         self.sensor = None
         self.args = None
+        self.configuration = configuration
 
     @property
     def default_epsg(self) -> int:
@@ -140,7 +141,7 @@ class Transformer():
         """
         return ['tif', 'tiff', 'jpg']
 
-    def get_image_file_epsg(self, source_path: str) -> str:
+    def get_image_file_epsg(self, source_path: str) -> Optional[str]:
         """Returns the EPSG of the georeferenced image file
         Arguments:
             source_path: the path to the image to load the EPSG code from
@@ -194,11 +195,11 @@ class Transformer():
         """
         # pylint: disable=no-self-use
         return {
-            'version': configuration.TRANSFORMER_VERSION,
-            'name': configuration.TRANSFORMER_NAME,
-            'author': configuration.AUTHOR_NAME,
-            'description': configuration.TRANSFORMER_DESCRIPTION,
-            'repository': {'repUrl': configuration.REPOSITORY}
+            'version': self.configuration.transformer_version,
+            'name': self.configuration.transformer_name,
+            'author': self.configuration.author_name,
+            'description': self.configuration.transformer_description,
+            'repository': {'repUrl': self.configuration.repository}
         }
 
     def add_parameters(self, parser: argparse.ArgumentParser) -> None:
@@ -207,8 +208,8 @@ class Transformer():
             parser: instance of argparse
         """
         # pylint: disable=no-self-use
-        parser.epilog = configuration.TRANSFORMER_NAME + ' version ' + configuration.TRANSFORMER_VERSION + \
-                        ' author ' + configuration.AUTHOR_NAME + ' ' + configuration.AUTHOR_EMAIL
+        parser.epilog = self.configuration.transformer_name + ' version ' + self.configuration.transformer_version + \
+                        ' author ' + self.configuration.author_name + ' ' + self.configuration.author_email
 
     def get_transformer_params(self, args: argparse.Namespace, metadata: list) -> dict:
         """Returns a parameter list for processing data
@@ -245,11 +246,11 @@ class Transformer():
                 experiment_name = parse_md['studyName']
 
             # Check for transformer specific metadata
-            if configuration.TRANSFORMER_NAME in parse_md:
-                if isinstance(parse_md[configuration.TRANSFORMER_NAME], list):
-                    transformer_md.extend(parse_md[configuration.TRANSFORMER_NAME])
+            if configuration.transformer_name in parse_md:
+                if isinstance(parse_md[configuration.transformer_name], list):
+                    transformer_md.extend(parse_md[configuration.transformer_name])
                 else:
-                    transformer_md.append(parse_md[configuration.TRANSFORMER_NAME])
+                    transformer_md.append(parse_md[configuration.transformer_name])
         # Get the list of files, if there are some and find the earliest timestamp if a timestamp
         # hasn't been specified yet
         file_list = []
