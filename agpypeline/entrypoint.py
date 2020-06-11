@@ -143,11 +143,11 @@ class __internal__():
         # pylint: disable=no-member
 
         # If we have a variable defined, check the many ways of determining False
-        if hasattr(configuration, "METADATA_NEEDED"):
-            if not configuration.METADATA_NEEDED:
+        if hasattr(configuration, "metadata_needed"):
+            if not configuration.metadata_needed:
                 return False
-            if isinstance(configuration.METADATA_NEEDED, str):
-                if configuration.METADATA_NEEDED.lower().strip() == 'false':
+            if isinstance(configuration.metadata_needed, str):
+                if configuration.metadata_needed.lower().strip() == 'false':
                     return False
         return True
 
@@ -258,11 +258,12 @@ class __internal__():
         return None
 
     @staticmethod
-    def perform_processing(transformer_instance: transformer_class.Transformer, transformer: transformer.Transformer, args: argparse.Namespace, metadata: dict) -> dict:
+    def perform_processing(transformer_instance: transformer_class.Transformer, algorithm_instance: transformer.Transformer,
+                           args: argparse.Namespace, metadata: dict) -> dict:
         """Makes the calls to perform the processing
         Arguments:
             transformer_instance: instance of transformer_class
-            transformer: an instance of transformer
+            algorithm_instance: an instance of transformer
             args: the command line arguments
             metadata: the loaded metadata
         Return:
@@ -298,8 +299,8 @@ class __internal__():
 
         # Next make the call to perform the processing
         if 'error' not in result:
-            if hasattr(transformer, 'perform_process'):
-                result = transformer.perform_process(transformer_instance, **transformer_params)
+            if hasattr(algorithm_instance, 'perform_process'):
+                result = algorithm_instance.perform_process(transformer_instance, **transformer_params)
             else:
                 logging.debug("Transformer module is missing function named 'perform_process'")
                 return __internal__.handle_error(-102, "Transformer perform_process interface " +
@@ -337,12 +338,12 @@ class __internal__():
 
 
 def add_parameters(parser: argparse.ArgumentParser, transformer_instance: transformer_class.Transformer,
-                   transformer: transformer.Transformer) -> None:
+                   algorithm_instance: transformer.Transformer) -> None:
     """Function to prepare and execute work unit
     Arguments:
         parser: an instance of argparse.ArgumentParser
         transformer_instance: instance of transformer class
-        transformer: instance of Transformer class
+        algorithm_instance: instance of Transformer class
     """
     parser.add_argument('--debug', '-d', action='store_const',
                         default=logging.WARN, const=logging.DEBUG,
@@ -365,31 +366,31 @@ def add_parameters(parser: argparse.ArgumentParser, transformer_instance: transf
         transformer_instance.add_parameters(parser)
 
     # Check if the transformer has a function defined to extend command line arguments
-    if hasattr(transformer, 'add_parameters'):
-        transformer.add_parameters(parser)
+    if hasattr(algorithm_instance, 'add_parameters'):
+        algorithm_instance.add_parameters(parser)
 
     # Assume the rest of the arguments are the files
     parser.add_argument('file_list', nargs=argparse.REMAINDER, help='additional files for transformer')
 
 
-def do_work(parser: argparse.ArgumentParser, configuration: configuration.Configuration,
-            transformer: transformer.Transformer, **kwargs) -> dict:
+def do_work(parser: argparse.ArgumentParser, configuration_info: configuration.Configuration,
+            algorithm_instance: transformer.Transformer, **kwargs) -> dict:
     """Function to prepare and execute work unit
     Arguments:
         parser: an instance of argparse.ArgumentParser
-        configuration: instance of Configuration class
-        transformer: instance of Transformer class
+        configuration_info: instance of Configuration class
+        algorithm_instance: instance of Transformer class
         kwargs: keyword args
     """
     result = {}
 
-    # Create an instance of the transformer
-    transformer_instance = transformer_class.Transformer(configuration, **kwargs)
+    # Create an instance of the Transformer class
+    transformer_instance = transformer_class.Transformer(configuration_info, **kwargs)
     if not transformer_instance:
         result = __internal__.handle_error(-100, "Unable to create transformer class instance for processing")
         return __internal__.handle_result(result, None, None)
 
-    add_parameters(parser, transformer_instance, transformer)
+    add_parameters(parser, transformer_instance, algorithm_instance)
     args = parser.parse_args()
 
     # start logging system
@@ -401,7 +402,7 @@ def do_work(parser: argparse.ArgumentParser, configuration: configuration.Config
     else:
         md_results = __internal__.load_metadata_files(args.metadata)
         if 'metadata' in md_results:
-            result = __internal__.perform_processing(transformer_instance, transformer, args, md_results['metadata'])
+            result = __internal__.perform_processing(transformer_instance, algorithm_instance, args, md_results['metadata'])
         else:
             result = __internal__.handle_error(-3, md_results['error'])
 
@@ -414,7 +415,12 @@ def do_work(parser: argparse.ArgumentParser, configuration: configuration.Config
     return result
 
 
-def entrypoint(configuration, transformer):
-    PARSER = argparse.ArgumentParser(description=configuration.TRANSFORMER_DESCRIPTION)
-    do_work(PARSER, configuration, transformer)
+def entrypoint(configuration_info: configuration.Configuration, algorithm_instance: transformer.Transformer):
+    """Entry point for processing
+    Arguments:
+        configuration_info: an instance of Configuration class
+        algorithm_instance: an instance of class for preparing work
+    """
+    PARSER = argparse.ArgumentParser(description=configuration_info.transformer_description)
+    do_work(PARSER, configuration_info, algorithm_instance)
 

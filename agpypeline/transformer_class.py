@@ -246,11 +246,11 @@ class Transformer():
                 experiment_name = parse_md['studyName']
 
             # Check for transformer specific metadata
-            if configuration.transformer_name in parse_md:
-                if isinstance(parse_md[configuration.transformer_name], list):
-                    transformer_md.extend(parse_md[configuration.transformer_name])
+            if self.configuration.transformer_name in parse_md:
+                if isinstance(parse_md[self.configuration.transformer_name], list):
+                    transformer_md.extend(parse_md[self.configuration.transformer_name])
                 else:
-                    transformer_md.append(parse_md[configuration.transformer_name])
+                    transformer_md.append(parse_md[self.configuration.transformer_name])
         # Get the list of files, if there are some and find the earliest timestamp if a timestamp
         # hasn't been specified yet
         file_list = []

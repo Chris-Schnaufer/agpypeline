@@ -1,5 +1,7 @@
 """Template class for a Transformer Algorithm
 """
+import transformer_class
+
 
 class Transformer:
     """Class for containing a Transformer Algorithm
@@ -18,4 +20,5 @@ class Transformer:
             transformer_md: dictionary
             full_md: dictionary
         """
+        # pylint: disable=unused-argument
         return {}
